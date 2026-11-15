@@ -17,3 +17,6 @@
    remain separate roles and authority domains.
 10. No remote production claim exists before disclosure, recovery, adversarial,
     platform, source-artifact, and commit-pinned integrated gates pass.
+11. Federation remains outside `vellum-engine`. Only a classified adapter in
+    this repository may depend on the ordinary Vellum Host API; protocol,
+    ports, services, and the engine remain dependency-clean.

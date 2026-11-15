@@ -6,6 +6,14 @@ read-only remote replicas. Remote edits return to ordinary current Vellum
 authority; replicas cannot allocate revisions, save, persist, rebind, or mutate
 membership locally.
 
+Federation protocol, sessions, disclosure, replication, repair, remote
+receipts, and transport uncertainty stay in this repository. Vellum remains the
+writing engine and retains document truth plus ordinary authorized commands.
+The only permitted engine dependency is a classified federation-to-Vellum
+adapter that calls the current Host boundary; `vellum-engine` never imports
+federation packages. See
+[`docs/architecture-boundaries.md`](docs/architecture-boundaries.md).
+
 The protocol package closes home-scoped workspace/document/source identity and
 exact bounded negotiation. Disclosure is negotiated independently: metadata-
 only support cannot silently become source-bearing replication. Injected trust

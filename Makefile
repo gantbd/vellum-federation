@@ -1,6 +1,7 @@
 .PHONY: check
 
 check:
+	./scripts/check-boundaries.sh
 	cargo fmt --all -- --check
 	cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 	cargo test --workspace --all-targets --locked --offline

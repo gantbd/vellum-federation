@@ -45,8 +45,12 @@
    zero, truncated, trailing, and oversized values. Concrete Vellum authority/
    persistence composition, transport adapter, and durable receipt publication
    remain open.
-5. Compose Vellum authentication/current authority, durable publication,
-   bounded transport, disclosure revocation, and irreversible session close.
+5. Add `adapters/vellum-federation-vellum` in this repository and compose
+   Vellum authentication/current Host authority, durable publication, bounded
+   transport, disclosure revocation, and irreversible session close. The
+   adapter may depend on the ordinary Vellum Host API; `vellum-engine`,
+   federation protocol, ports, and services must not depend on each other
+   across that seam.
 6. Qualify partitions, reconnect, revocation, lost replies, receipt recovery,
    imported-event non-export, human/agent symmetry, source cleanup obligations,
    and synchronization-acknowledgement meaning.

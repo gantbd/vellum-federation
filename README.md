@@ -27,6 +27,10 @@ The event payload vocabulary is also closed: document presence, monotone source
 revision advancement with a content digest, and document absence are canonical
 content-safe facts. It carries no source bytes and confers no edit, save,
 persistence, membership, or retention authority.
+Canonical session evidence records both verified homes, trust epochs, service
+incarnations, and the negotiated disclosure/schema/limit set. It deliberately
+omits the transport exporter and cannot replace current trust revalidation or
+grant read, edit, save, persistence, or retention authority.
 The fixed post-trust hello additionally binds home, trust epoch, service
 incarnation, disclosure and schema ranges, and positive operational ceilings.
 Negotiating source disclosure remains a capability selection, never edit,

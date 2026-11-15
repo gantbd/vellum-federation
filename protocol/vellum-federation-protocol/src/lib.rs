@@ -328,6 +328,55 @@ pub struct FederationSessionV1 {
     pub negotiated: NegotiatedFederationV1,
 }
 
+/// Public, non-authorizing evidence of one established session binding.
+///
+/// The transport exporter is deliberately absent. This value is suitable for
+/// canonical diagnostics/checkpoints but is neither a credential nor proof
+/// that either home remains currently trusted.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FederationSessionEvidenceV1 {
+    pub local: VerifiedHomeV1,
+    pub peer: VerifiedHomeV1,
+    pub local_incarnation: ServiceIncarnationV1,
+    pub peer_incarnation: ServiceIncarnationV1,
+    pub negotiated: NegotiatedFederationV1,
+}
+
+impl FederationSessionEvidenceV1 {
+    pub fn new(
+        local: VerifiedHomeV1,
+        peer: VerifiedHomeV1,
+        local_incarnation: ServiceIncarnationV1,
+        peer_incarnation: ServiceIncarnationV1,
+        negotiated: NegotiatedFederationV1,
+    ) -> Option<Self> {
+        (local.home != peer.home
+            && negotiated.protocol != 0
+            && negotiated.event_schema != 0
+            && negotiated.snapshot_schema != 0
+            && negotiated.edit_schema != 0
+            && negotiated.receipt_schema != 0
+            && negotiated.limits.valid())
+        .then_some(Self {
+            local,
+            peer,
+            local_incarnation,
+            peer_incarnation,
+            negotiated,
+        })
+    }
+
+    pub fn from_session(session: FederationSessionV1) -> Self {
+        Self {
+            local: session.local,
+            peer: session.peer,
+            local_incarnation: session.local_incarnation,
+            peer_incarnation: session.peer_incarnation,
+            negotiated: session.negotiated,
+        }
+    }
+}
+
 impl fmt::Debug for FederationSessionV1 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter

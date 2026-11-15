@@ -1,14 +1,15 @@
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1,
-    ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1,
+    FederationSessionEvidenceV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
+    NegotiatedFederationV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
+    SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1, VerifiedHomeV1,
     WorkspaceEventFactV1,
 };
 use vellum_federation_wire::{
-    WireRefusalV1, decode_acknowledgement, decode_event, decode_hello, decode_snapshot,
-    decode_workspace_event_fact, encode_acknowledgement, encode_event, encode_hello,
-    encode_snapshot, encode_workspace_event_fact,
+    WireRefusalV1, decode_acknowledgement, decode_event, decode_hello, decode_session_evidence,
+    decode_snapshot, decode_workspace_event_fact, encode_acknowledgement, encode_event,
+    encode_hello, encode_session_evidence, encode_snapshot, encode_workspace_event_fact,
 };
 
 fn workspace() -> FederatedWorkspaceRefV1 {
@@ -220,5 +221,81 @@ fn workspace_event_fact_decoder_refuses_unknown_noncanonical_and_malformed_value
     assert_eq!(
         decode_workspace_event_fact(&zero_revision),
         Err(WireRefusalV1::InvalidEvent)
+    );
+}
+
+fn session_evidence() -> FederationSessionEvidenceV1 {
+    FederationSessionEvidenceV1::new(
+        VerifiedHomeV1 {
+            home: VellumHomeIdV1::new([0x11; 32]).unwrap(),
+            trust_epoch: TrustEpochV1::new(3).unwrap(),
+        },
+        VerifiedHomeV1 {
+            home: VellumHomeIdV1::new([0x22; 32]).unwrap(),
+            trust_epoch: TrustEpochV1::new(4).unwrap(),
+        },
+        ServiceIncarnationV1::new([0x33; 16]).unwrap(),
+        ServiceIncarnationV1::new([0x44; 16]).unwrap(),
+        NegotiatedFederationV1 {
+            protocol: 1,
+            disclosure: DisclosureProfileV1::Source,
+            event_schema: 2,
+            snapshot_schema: 3,
+            edit_schema: 4,
+            receipt_schema: 5,
+            limits: FederationLimitsV1 {
+                max_frame_bytes: 1_024,
+                max_source_bytes: 2_048,
+                max_documents: 6,
+                max_in_flight: 7,
+                max_subscriptions: 8,
+                max_replay_events: 9,
+                max_snapshot_bytes: 4_096,
+                max_receipts: 10,
+            },
+        },
+    )
+    .unwrap()
+}
+
+#[test]
+fn session_evidence_is_canonical_non_authorizing_and_exporter_free() {
+    let evidence = session_evidence();
+    let bytes = encode_session_evidence(evidence);
+    assert_eq!(bytes.len(), 150);
+    assert_eq!(&bytes[..4], b"VSE1");
+    assert_eq!(decode_session_evidence(&bytes), Ok(evidence));
+    assert!(!bytes.windows(32).any(|window| window == [0x99; 32]));
+    assert_eq!(
+        decode_session_evidence(&bytes[..149]),
+        Err(WireRefusalV1::Truncated)
+    );
+    let mut trailing = bytes.to_vec();
+    trailing.push(0);
+    assert_eq!(
+        decode_session_evidence(&trailing),
+        Err(WireRefusalV1::LengthMismatch)
+    );
+}
+
+#[test]
+fn session_evidence_refuses_self_sessions_zero_profiles_and_zero_limits() {
+    let mut bytes = encode_session_evidence(session_evidence());
+    bytes[44..76].copy_from_slice(&[0x11; 32]);
+    assert_eq!(
+        decode_session_evidence(&bytes),
+        Err(WireRefusalV1::InvalidLimits)
+    );
+    let mut bytes = encode_session_evidence(session_evidence());
+    bytes[116..118].fill(0);
+    assert_eq!(
+        decode_session_evidence(&bytes),
+        Err(WireRefusalV1::InvalidLimits)
+    );
+    let mut bytes = encode_session_evidence(session_evidence());
+    bytes[128..132].fill(0);
+    assert_eq!(
+        decode_session_evidence(&bytes),
+        Err(WireRefusalV1::InvalidLimits)
     );
 }

@@ -5,8 +5,9 @@
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1,
-    ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1,
+    FederationSessionEvidenceV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
+    NegotiatedFederationV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
+    SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1, VerifiedHomeV1,
     WorkspaceEventFactV1,
 };
 
@@ -17,6 +18,8 @@ const ACKNOWLEDGEMENT: u8 = 3;
 const HEADER_LEN: usize = 63;
 const HELLO_MAGIC: &[u8; 4] = b"VFH1";
 const HELLO_LEN: usize = 106;
+const SESSION_EVIDENCE_MAGIC: &[u8; 4] = b"VSE1";
+const SESSION_EVIDENCE_LEN: usize = 150;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WireRefusalV1 {
@@ -237,6 +240,120 @@ pub fn decode_hello(frame: &[u8]) -> Result<FederationHelloV1, WireRefusalV1> {
     })
 }
 
+pub fn encode_session_evidence(
+    evidence: FederationSessionEvidenceV1,
+) -> [u8; SESSION_EVIDENCE_LEN] {
+    let mut frame = [0_u8; SESSION_EVIDENCE_LEN];
+    let mut offset = 0;
+    put(&mut frame, &mut offset, SESSION_EVIDENCE_MAGIC);
+    for home in [evidence.local, evidence.peer] {
+        put(&mut frame, &mut offset, &home.home.as_bytes());
+        put(
+            &mut frame,
+            &mut offset,
+            &home.trust_epoch.get().to_be_bytes(),
+        );
+    }
+    put(
+        &mut frame,
+        &mut offset,
+        &evidence.local_incarnation.as_bytes(),
+    );
+    put(
+        &mut frame,
+        &mut offset,
+        &evidence.peer_incarnation.as_bytes(),
+    );
+    for profile in [
+        evidence.negotiated.protocol,
+        evidence.negotiated.disclosure.as_u16(),
+        evidence.negotiated.event_schema,
+        evidence.negotiated.snapshot_schema,
+        evidence.negotiated.edit_schema,
+        evidence.negotiated.receipt_schema,
+    ] {
+        put(&mut frame, &mut offset, &profile.to_be_bytes());
+    }
+    let limits = evidence.negotiated.limits;
+    put(
+        &mut frame,
+        &mut offset,
+        &limits.max_frame_bytes.to_be_bytes(),
+    );
+    put(
+        &mut frame,
+        &mut offset,
+        &limits.max_source_bytes.to_be_bytes(),
+    );
+    put(&mut frame, &mut offset, &limits.max_documents.to_be_bytes());
+    put(&mut frame, &mut offset, &limits.max_in_flight.to_be_bytes());
+    put(
+        &mut frame,
+        &mut offset,
+        &limits.max_subscriptions.to_be_bytes(),
+    );
+    put(
+        &mut frame,
+        &mut offset,
+        &limits.max_replay_events.to_be_bytes(),
+    );
+    put(
+        &mut frame,
+        &mut offset,
+        &limits.max_snapshot_bytes.to_be_bytes(),
+    );
+    put(&mut frame, &mut offset, &limits.max_receipts.to_be_bytes());
+    debug_assert_eq!(offset, SESSION_EVIDENCE_LEN);
+    frame
+}
+
+pub fn decode_session_evidence(frame: &[u8]) -> Result<FederationSessionEvidenceV1, WireRefusalV1> {
+    if frame.len() < SESSION_EVIDENCE_LEN {
+        return Err(WireRefusalV1::Truncated);
+    }
+    if frame.len() != SESSION_EVIDENCE_LEN {
+        return Err(WireRefusalV1::LengthMismatch);
+    }
+    if &frame[..4] != SESSION_EVIDENCE_MAGIC {
+        return Err(WireRefusalV1::BadMagic);
+    }
+    let mut offset = 4;
+    let mut take_home = || -> Result<VerifiedHomeV1, WireRefusalV1> {
+        let home = VellumHomeIdV1::new(take_fixed(frame, &mut offset))
+            .ok_or(WireRefusalV1::InvalidIdentity)?;
+        let trust_epoch = TrustEpochV1::new(take_u64(frame, &mut offset))
+            .ok_or(WireRefusalV1::InvalidIdentity)?;
+        Ok(VerifiedHomeV1 { home, trust_epoch })
+    };
+    let local = take_home()?;
+    let peer = take_home()?;
+    let local_incarnation = ServiceIncarnationV1::new(take_fixed(frame, &mut offset))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let peer_incarnation = ServiceIncarnationV1::new(take_fixed(frame, &mut offset))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let negotiated = NegotiatedFederationV1 {
+        protocol: take_u16(frame, &mut offset),
+        disclosure: DisclosureProfileV1::from_u16(take_u16(frame, &mut offset))
+            .ok_or(WireRefusalV1::InvalidDisclosure)?,
+        event_schema: take_u16(frame, &mut offset),
+        snapshot_schema: take_u16(frame, &mut offset),
+        edit_schema: take_u16(frame, &mut offset),
+        receipt_schema: take_u16(frame, &mut offset),
+        limits: FederationLimitsV1 {
+            max_frame_bytes: take_u32(frame, &mut offset),
+            max_source_bytes: take_u32(frame, &mut offset),
+            max_documents: take_u16(frame, &mut offset),
+            max_in_flight: take_u16(frame, &mut offset),
+            max_subscriptions: take_u16(frame, &mut offset),
+            max_replay_events: take_u16(frame, &mut offset),
+            max_snapshot_bytes: take_u32(frame, &mut offset),
+            max_receipts: take_u16(frame, &mut offset),
+        },
+    };
+    FederationSessionEvidenceV1::new(local, peer, local_incarnation, peer_incarnation, negotiated)
+        .ok_or(WireRefusalV1::InvalidLimits)
+}
+
 fn put<const N: usize>(frame: &mut [u8], offset: &mut usize, bytes: &[u8; N]) {
     frame[*offset..*offset + N].copy_from_slice(bytes);
     *offset += N;
@@ -251,6 +368,18 @@ fn take_u16(frame: &[u8], offset: &mut usize) -> u16 {
 fn take_u32(frame: &[u8], offset: &mut usize) -> u32 {
     let value = u32::from_be_bytes(frame[*offset..*offset + 4].try_into().expect("fixed slice"));
     *offset += 4;
+    value
+}
+
+fn take_u64(frame: &[u8], offset: &mut usize) -> u64 {
+    let value = u64::from_be_bytes(frame[*offset..*offset + 8].try_into().expect("fixed slice"));
+    *offset += 8;
+    value
+}
+
+fn take_fixed<const N: usize>(frame: &[u8], offset: &mut usize) -> [u8; N] {
+    let value = frame[*offset..*offset + N].try_into().expect("fixed slice");
+    *offset += N;
     value
 }
 

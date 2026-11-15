@@ -2,10 +2,12 @@
 members = [
     "adapters/vellum-federation-configured-trust",
     "ports/vellum-federation-edit-port",
+    "ports/vellum-federation-replica-store-port",
     "ports/vellum-federation-trust-port",
     "protocol/vellum-federation-protocol",
     "protocol/vellum-federation-wire",
     "service/vellum-federation-replica",
+    "service/vellum-federation-replica-durable",
     "service/vellum-federation-edit-admission",
     "service/vellum-federation-session",
 ]

@@ -1,0 +1,11 @@
+[package]
+name = "vellum-federation-replica-store-port"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Effect-free durable checkpoint port for Vellum federation replicas"
+
+[lints]
+workspace = true

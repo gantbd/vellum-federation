@@ -20,7 +20,11 @@
    fixed disclosure-aware hello frames and fixtures are implemented. The
    complete disclosure-bound journal also has a canonical versioned checkpoint
    encoding that revalidates current limits and journal invariants on encode
-   and decode. A commit-gated storage owner remains open.
+   and decode. An effect-free scoped compare-exchange store port and
+   commit-gated durable owner now add exact receipt validation,
+   definite-refusal rollback, unknown-outcome fencing, replay suppression, and
+   canonical recovery. A concrete physical storage adapter and process/power-loss
+   qualification remain open.
 4. Remote edit admission foundation implemented: home-scoped actor/document and
    request identities, opaque nonempty edit intent, revision-safe closed reply,
    pre-effect scope/replay/conflict/capacity checks, exact retained receipts,

@@ -2,7 +2,7 @@
 
 check:
 	./scripts/check-boundaries.sh
-	cargo fmt --all -- --check
+	./scripts/check-format.sh
 	cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 	cargo test --workspace --all-targets --locked --offline
 	cargo test --workspace --doc --locked --offline

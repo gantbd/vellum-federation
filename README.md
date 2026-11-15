@@ -77,6 +77,18 @@ incarnation, disclosure and schema ranges, and positive operational ceilings.
 Negotiating source disclosure remains a capability selection, never edit,
 save, persistence, or workspace authority.
 
+The classified `vellum-federation-vellum` adapter now supplies the first
+ordinary service/Host composition. It binds one remote actor and document to an
+already authenticated native client/document, translates one canonical bounded
+replacement into Vellum's restart-stable `ReplaceDocumentAndSave` operation,
+and returns federated success only from matching durable persistence evidence.
+The complete federation request ID stays the durable operation identity while
+an exact configured namespace gives the narrower native request register an
+injective suffix. Binding, malformed intent, not-sent versus unknown,
+non-durable completion, redacted diagnostics, and absorbing close behavior have
+focused executable coverage. Authenticated remote transport and live
+disclosure/trust-revocation wiring remain outside this slice.
+
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Canonical home/kind/request scoping and the
 optional SPIFFE trust-adapter boundary are defined in

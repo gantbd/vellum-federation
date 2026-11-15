@@ -1,0 +1,16 @@
+[package]
+name = "vellum-federation-vellum"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Authoritative Vellum host composition for native federation"
+
+[dependencies]
+vellum-federation-edit-port = { path = "../../ports/vellum-federation-edit-port", version = "=0.1.0" }
+vellum-federation-protocol = { path = "../../protocol/vellum-federation-protocol", version = "=0.1.0" }
+vellum-protocol = { path = "../../../vellum/protocol/vellum-protocol", version = "=0.1.0" }
+
+[lints]
+workspace = true

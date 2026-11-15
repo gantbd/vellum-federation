@@ -75,8 +75,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "vellum-federation-vellum"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-edit-port",
+ "vellum-federation-protocol",
+ "vellum-protocol",
+]
+
+[[package]]
 name = "vellum-federation-wire"
 version = "0.1.0"
 dependencies = [
  "vellum-federation-protocol",
 ]
+
+[[package]]
+name = "vellum-protocol"
+version = "0.1.0"

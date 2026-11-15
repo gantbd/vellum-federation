@@ -168,7 +168,17 @@ fn corruption_residue_and_unsafe_modes_fail_closed() {
         DirectoryReplicaStoreV1::open(directory.path(), scope, MAX_CHECKPOINT_BYTES),
         Err(DirectoryReplicaOpenRefusalV1::PendingPublication)
     ));
-    fs::remove_file(directory.path().join("replica.pending")).unwrap();
+    let mut recovered = DirectoryReplicaStoreV1::recover_interrupted_after_exclusive_shutdown(
+        directory.path(),
+        scope,
+        MAX_CHECKPOINT_BYTES,
+    )
+    .unwrap();
+    assert_eq!(
+        recovered.load(scope),
+        ReplicaStoreLoadV1::Present(initial.clone())
+    );
+    drop(recovered);
     OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -179,11 +189,26 @@ fn corruption_residue_and_unsafe_modes_fail_closed() {
         DirectoryReplicaStoreV1::open(directory.path(), scope, MAX_CHECKPOINT_BYTES),
         Err(DirectoryReplicaOpenRefusalV1::PendingPublication)
     ));
-    fs::remove_file(directory.path().join("replica.lock")).unwrap();
+    let mut recovered = DirectoryReplicaStoreV1::recover_interrupted_after_exclusive_shutdown(
+        directory.path(),
+        scope,
+        MAX_CHECKPOINT_BYTES,
+    )
+    .unwrap();
+    assert_eq!(recovered.load(scope), ReplicaStoreLoadV1::Present(initial));
+    drop(recovered);
     symlink("missing-target", directory.path().join("replica.pending")).unwrap();
     assert!(matches!(
         DirectoryReplicaStoreV1::open(directory.path(), scope, MAX_CHECKPOINT_BYTES),
         Err(DirectoryReplicaOpenRefusalV1::PendingPublication)
+    ));
+    assert!(matches!(
+        DirectoryReplicaStoreV1::recover_interrupted_after_exclusive_shutdown(
+            directory.path(),
+            scope,
+            MAX_CHECKPOINT_BYTES,
+        ),
+        Err(DirectoryReplicaOpenRefusalV1::UnsafeDirectory)
     ));
     fs::remove_file(directory.path().join("replica.pending")).unwrap();
     fs::set_permissions(directory.path(), fs::Permissions::from_mode(0o755)).unwrap();

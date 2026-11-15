@@ -44,11 +44,14 @@ mechanism: a scope-bearing checksummed record in a mode-0700 directory,
 mode-0600 lock/pending/head resources, serialized compare-exchange,
 synchronized atomic replacement, exact reread before receipt, and corruption
 or interruption-residue fencing. Durable-owner replacement reopens the
-canonical disclosure-bound journal and exact replay performs no write. It
-grants no edit, save, source, revision-allocation, retention, or federation
-authority and does not claim automatic residue repair, network-filesystem
-behavior, hostile-storage integrity, hardware power-loss survival, backup, or
-erasure.
+canonical disclosure-bound journal and exact replay performs no write. After an
+externally established exclusive shutdown, it also exposes explicit
+interrupted-open recovery that validates the canonical head first, discards
+only regular mode-0600 pending/lock residue, never promotes
+pending bytes, and refuses unsafe residue. It grants no edit, save, source,
+revision-allocation, retention, or federation authority and does not claim
+arbitrary syscall-cut coverage, network-filesystem behavior, hostile-storage
+integrity, hardware power-loss survival, backup, or erasure.
 Remote edit admission uses a separately scoped actor, document, request ID,
 expected source revision, and opaque intent. The federation service preflights
 exact replay/conflict/capacity before effects and retains the original reply;

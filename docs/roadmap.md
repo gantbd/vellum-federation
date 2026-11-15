@@ -28,8 +28,11 @@
    a separate serialized operation lock, synchronized atomic head replacement,
    exact receipt reread, owner replacement, stale-CAS refusal, one-winner
    concurrent CAS, every-single-bit corruption refusal, and explicit pending/
-   lock residue fencing. Automatic residue remediation, process-cut injection
-   at every syscall, hardware power-loss qualification, network filesystems,
+   lock residue fencing. After externally established exclusive shutdown,
+   interrupted-open recovery validates the head first, discards only recognized
+   regular mode-0600 pending/lock residue, never
+   promotes pending bytes, and refuses unsafe residue. Process-cut injection at
+   every syscall, hardware power-loss qualification, network filesystems,
    backups, hostile storage, and erasure remain open.
 4. Remote edit admission foundation implemented: home-scoped actor/document and
    request identities, opaque nonempty edit intent, revision-safe closed reply,

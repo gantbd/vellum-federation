@@ -43,7 +43,45 @@ impl DirectoryReplicaStoreV1 {
         scope: ReplicaStoreScopeV1,
         max_checkpoint_bytes: usize,
     ) -> Result<Self, DirectoryReplicaOpenRefusalV1> {
-        let directory = directory.as_ref();
+        let store = Self::prepare(directory.as_ref(), scope, max_checkpoint_bytes)?;
+        if resource_may_exist(&store.lock_path()) || resource_may_exist(&store.pending_path()) {
+            return Err(DirectoryReplicaOpenRefusalV1::PendingPublication);
+        }
+        Ok(store)
+    }
+
+    /// Recovers only recognized interruption residue after the caller has
+    /// externally established that no live owner remains. The canonical head
+    /// is validated first and remains the sole commit point; pending bytes are
+    /// never promoted. Unsafe resource kinds or modes refuse without cleanup.
+    pub fn recover_interrupted_after_exclusive_shutdown(
+        directory: impl AsRef<Path>,
+        scope: ReplicaStoreScopeV1,
+        max_checkpoint_bytes: usize,
+    ) -> Result<Self, DirectoryReplicaOpenRefusalV1> {
+        let store = Self::prepare(directory.as_ref(), scope, max_checkpoint_bytes)?;
+        let pending = validate_residue_resource(&store.pending_path())?;
+        let lock = validate_residue_resource(&store.lock_path())?;
+        if pending {
+            fs::remove_file(store.pending_path())
+                .map_err(|_| DirectoryReplicaOpenRefusalV1::Unavailable)?;
+        }
+        if lock {
+            fs::remove_file(store.lock_path())
+                .map_err(|_| DirectoryReplicaOpenRefusalV1::Unavailable)?;
+        }
+        if pending || lock {
+            sync_directory(&store.directory)
+                .map_err(|_| DirectoryReplicaOpenRefusalV1::Unavailable)?;
+        }
+        Ok(store)
+    }
+
+    fn prepare(
+        directory: &Path,
+        scope: ReplicaStoreScopeV1,
+        max_checkpoint_bytes: usize,
+    ) -> Result<Self, DirectoryReplicaOpenRefusalV1> {
         if max_checkpoint_bytes == 0
             || max_checkpoint_bytes.checked_add(RECORD_OVERHEAD).is_none()
             || !directory.is_absolute()
@@ -72,9 +110,6 @@ impl DirectoryReplicaStoreV1 {
             scope,
             max_checkpoint_bytes,
         };
-        if resource_may_exist(&store.lock_path()) || resource_may_exist(&store.pending_path()) {
-            return Err(DirectoryReplicaOpenRefusalV1::PendingPublication);
-        }
         match store.read_head() {
             Ok(_) => Ok(store),
             Err(ReadFailure::Unsafe) => Err(DirectoryReplicaOpenRefusalV1::UnsafeDirectory),
@@ -315,4 +350,17 @@ fn resource_may_exist(path: &Path) -> bool {
         fs::symlink_metadata(path),
         Err(error) if error.kind() == io::ErrorKind::NotFound
     )
+}
+
+fn validate_residue_resource(path: &Path) -> Result<bool, DirectoryReplicaOpenRefusalV1> {
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(false),
+        Err(_) => Err(DirectoryReplicaOpenRefusalV1::Unavailable),
+        Ok(metadata)
+            if metadata.file_type().is_file() && metadata.permissions().mode() & 0o777 == 0o600 =>
+        {
+            Ok(true)
+        }
+        Ok(_) => Err(DirectoryReplicaOpenRefusalV1::UnsafeDirectory),
+    }
 }

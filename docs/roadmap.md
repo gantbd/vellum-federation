@@ -24,9 +24,12 @@
    pre-effect scope/replay/conflict/capacity checks, exact retained receipts,
    recovery validation, and client-side exact uncertainty fencing. The separate
    effect-free edit port exposes reply, definitely-not-executed, and
-   outcome-unknown without defining Vellum edit semantics. Concrete Vellum
-   authority/persistence composition and durable receipt publication remain
-   open.
+   outcome-unknown without defining Vellum edit semantics. Canonical bounded
+   request/reply frames bind the exact actor, document, expected revision,
+   opaque intent, request identity, and closed outcome while refusing unknown,
+   zero, truncated, trailing, and oversized values. Concrete Vellum authority/
+   persistence composition, transport adapter, and durable receipt publication
+   remain open.
 5. Compose Vellum authentication/current authority, durable publication,
    bounded transport, disclosure revocation, and irreversible session close.
 6. Qualify partitions, reconnect, revocation, lost replies, receipt recovery,

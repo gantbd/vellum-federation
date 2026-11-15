@@ -38,6 +38,11 @@ its client preserves only the equal uncertain request. An effect-free port keeps
 reply, definitely-not-executed, and outcome-unknown distinct. The concrete
 adapter must still invoke ordinary current Vellum authority and persistence;
 federation never interprets or executes the edit itself.
+Canonical remote-edit frames preserve the opaque intent and bind its actor,
+document, expected revision, request identity, and exact closed reply. Decoders
+fail closed on malformed identity, bounds, tags, lengths, and revisions; these
+frames are protocol evidence only and do not grant edit or persistence
+authority.
 The fixed post-trust hello additionally binds home, trust epoch, service
 incarnation, disclosure and schema ranges, and positive operational ceilings.
 Negotiating source disclosure remains a capability selection, never edit,

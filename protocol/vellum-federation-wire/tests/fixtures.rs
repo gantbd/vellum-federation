@@ -1,15 +1,17 @@
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
+    EditRefusalClassV1, EditRequestIdV1, FederatedActorRefV1, FederatedDocumentRefV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    FederationSessionEvidenceV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
-    NegotiatedFederationV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
-    SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1, VerifiedHomeV1,
-    WorkspaceEventFactV1,
+    FederationSessionEvidenceV1, HomeLocalActorIdV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
+    NegotiatedFederationV1, ProfileRangeV1, RemoteEditReplyV1, RemoteEditRequestV1,
+    ReplicaAcknowledgementV1, ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1,
+    VellumHomeIdV1, VerifiedHomeV1, WorkspaceEventFactV1,
 };
 use vellum_federation_wire::{
-    WireRefusalV1, decode_acknowledgement, decode_event, decode_hello, decode_session_evidence,
-    decode_snapshot, decode_workspace_event_fact, encode_acknowledgement, encode_event,
-    encode_hello, encode_session_evidence, encode_snapshot, encode_workspace_event_fact,
+    WireRefusalV1, decode_acknowledgement, decode_edit_reply, decode_edit_request, decode_event,
+    decode_hello, decode_session_evidence, decode_snapshot, decode_workspace_event_fact,
+    encode_acknowledgement, encode_edit_reply, encode_edit_request, encode_event, encode_hello,
+    encode_session_evidence, encode_snapshot, encode_workspace_event_fact,
 };
 
 fn workspace() -> FederatedWorkspaceRefV1 {
@@ -43,6 +45,190 @@ fn hello() -> FederationHelloV1 {
             },
         },
     }
+}
+
+fn edit_request() -> RemoteEditRequestV1 {
+    RemoteEditRequestV1::new(
+        EditRequestIdV1::new([0x31; 16]).unwrap(),
+        FederatedActorRefV1 {
+            home: VellumHomeIdV1::new([0x32; 32]).unwrap(),
+            actor: HomeLocalActorIdV1::new([0x33; 16]).unwrap(),
+        },
+        FederatedDocumentRefV1 {
+            workspace: FederatedWorkspaceRefV1 {
+                home: VellumHomeIdV1::new([0x34; 32]).unwrap(),
+                workspace: HomeLocalWorkspaceIdV1::new([0x35; 16]).unwrap(),
+            },
+            document: HomeLocalDocumentIdV1::new([0x36; 16]).unwrap(),
+        },
+        SourceRevisionV1::new(7).unwrap(),
+        vec![0xde, 0xad, 0xbe, 0xef],
+    )
+    .unwrap()
+}
+
+#[test]
+fn edit_request_fixture_is_canonical_bounded_and_opaque() {
+    let request = edit_request();
+    let frame = encode_edit_request(&request).unwrap();
+
+    assert_eq!(frame.len(), 148);
+    assert_eq!(&frame[..4], b"VEQ1");
+    assert_eq!(&frame[4..20], &[0x31; 16]);
+    assert_eq!(&frame[20..52], &[0x32; 32]);
+    assert_eq!(&frame[52..68], &[0x33; 16]);
+    assert_eq!(&frame[68..100], &[0x34; 32]);
+    assert_eq!(&frame[100..116], &[0x35; 16]);
+    assert_eq!(&frame[116..132], &[0x36; 16]);
+    assert_eq!(&frame[132..140], &7_u64.to_be_bytes());
+    assert_eq!(&frame[140..144], &4_u32.to_be_bytes());
+    assert_eq!(&frame[144..], &[0xde, 0xad, 0xbe, 0xef]);
+    assert_eq!(decode_edit_request(&frame, 4), Ok(request));
+    assert_eq!(
+        decode_edit_request(&frame, 3),
+        Err(WireRefusalV1::PayloadTooLarge)
+    );
+    assert_eq!(
+        decode_edit_request(&frame, 0),
+        Err(WireRefusalV1::InvalidLimits)
+    );
+}
+
+#[test]
+fn edit_request_decoder_refuses_malformed_or_noncanonical_frames() {
+    let valid = encode_edit_request(&edit_request()).unwrap();
+    assert_eq!(
+        decode_edit_request(&valid[..143], 4),
+        Err(WireRefusalV1::Truncated)
+    );
+
+    let mut trailing = valid.clone();
+    trailing.push(0);
+    assert_eq!(
+        decode_edit_request(&trailing, 5),
+        Err(WireRefusalV1::LengthMismatch)
+    );
+
+    let mut declared_too_long = valid.clone();
+    declared_too_long[140..144].copy_from_slice(&5_u32.to_be_bytes());
+    assert_eq!(
+        decode_edit_request(&declared_too_long, 5),
+        Err(WireRefusalV1::LengthMismatch)
+    );
+
+    for range in [4..20, 20..52, 52..68, 68..100, 100..116, 116..132] {
+        let mut zero = valid.clone();
+        zero[range].fill(0);
+        assert!(matches!(
+            decode_edit_request(&zero, 4),
+            Err(WireRefusalV1::InvalidRequest | WireRefusalV1::InvalidIdentity)
+        ));
+    }
+
+    let mut zero_revision = valid.clone();
+    zero_revision[132..140].fill(0);
+    assert_eq!(
+        decode_edit_request(&zero_revision, 4),
+        Err(WireRefusalV1::InvalidRequest)
+    );
+
+    let mut empty = valid[..144].to_vec();
+    empty[140..144].fill(0);
+    assert_eq!(
+        decode_edit_request(&empty, 4),
+        Err(WireRefusalV1::InvalidRequest)
+    );
+}
+
+#[test]
+fn edit_reply_fixtures_are_canonical_and_closed() {
+    let request_id = EditRequestIdV1::new([0x31; 16]).unwrap();
+    let applied = RemoteEditReplyV1::Applied {
+        resulting_revision: SourceRevisionV1::new(8).unwrap(),
+    };
+    let applied_frame = encode_edit_reply(request_id, applied);
+    assert_eq!(applied_frame.len(), 29);
+    assert_eq!(&applied_frame[..4], b"VEP1");
+    assert_eq!(applied_frame[20], 1);
+    assert_eq!(&applied_frame[21..], &8_u64.to_be_bytes());
+    assert_eq!(decode_edit_reply(&applied_frame), Ok((request_id, applied)));
+
+    for refusal in [
+        EditRefusalClassV1::Unauthorized,
+        EditRefusalClassV1::StaleRevision,
+        EditRefusalClassV1::InvalidIntent,
+        EditRefusalClassV1::Unavailable,
+    ] {
+        let reply = RemoteEditReplyV1::Refused(refusal);
+        let frame = encode_edit_reply(request_id, reply);
+        assert_eq!(frame.len(), 22);
+        assert_eq!(frame[20], 2);
+        assert_eq!(decode_edit_reply(&frame), Ok((request_id, reply)));
+    }
+}
+
+#[test]
+fn edit_reply_decoder_refuses_truncated_trailing_unknown_and_zero_values() {
+    let request_id = EditRequestIdV1::new([0x31; 16]).unwrap();
+    let mut applied = encode_edit_reply(
+        request_id,
+        RemoteEditReplyV1::Applied {
+            resulting_revision: SourceRevisionV1::new(8).unwrap(),
+        },
+    );
+    assert_eq!(
+        decode_edit_reply(&applied[..21]),
+        Err(WireRefusalV1::Truncated)
+    );
+    assert_eq!(
+        decode_edit_reply(&applied[..28]),
+        Err(WireRefusalV1::Truncated)
+    );
+    applied.push(0);
+    assert_eq!(
+        decode_edit_reply(&applied),
+        Err(WireRefusalV1::LengthMismatch)
+    );
+
+    let mut zero_request = encode_edit_reply(
+        request_id,
+        RemoteEditReplyV1::Refused(EditRefusalClassV1::Unauthorized),
+    );
+    zero_request[4..20].fill(0);
+    assert_eq!(
+        decode_edit_reply(&zero_request),
+        Err(WireRefusalV1::InvalidReply)
+    );
+
+    let mut unknown_tag = zero_request;
+    unknown_tag[4..20].fill(0x31);
+    unknown_tag[20] = 99;
+    assert_eq!(
+        decode_edit_reply(&unknown_tag),
+        Err(WireRefusalV1::InvalidReply)
+    );
+
+    let mut unknown_refusal = encode_edit_reply(
+        request_id,
+        RemoteEditReplyV1::Refused(EditRefusalClassV1::Unauthorized),
+    );
+    unknown_refusal[21] = 99;
+    assert_eq!(
+        decode_edit_reply(&unknown_refusal),
+        Err(WireRefusalV1::InvalidReply)
+    );
+
+    let mut zero_revision = encode_edit_reply(
+        request_id,
+        RemoteEditReplyV1::Applied {
+            resulting_revision: SourceRevisionV1::new(8).unwrap(),
+        },
+    );
+    zero_revision[21..29].fill(0);
+    assert_eq!(
+        decode_edit_reply(&zero_revision),
+        Err(WireRefusalV1::InvalidReply)
+    );
 }
 
 #[test]

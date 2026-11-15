@@ -4,11 +4,12 @@
 
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
+    EditRefusalClassV1, EditRequestIdV1, FederatedActorRefV1, FederatedDocumentRefV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    FederationSessionEvidenceV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
-    NegotiatedFederationV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
-    SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1, VerifiedHomeV1,
-    WorkspaceEventFactV1,
+    FederationSessionEvidenceV1, HomeLocalActorIdV1, HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1,
+    NegotiatedFederationV1, ProfileRangeV1, RemoteEditReplyV1, RemoteEditRequestV1,
+    ReplicaAcknowledgementV1, ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1,
+    VellumHomeIdV1, VerifiedHomeV1, WorkspaceEventFactV1,
 };
 
 const MAGIC: &[u8; 4] = b"VFW1";
@@ -20,6 +21,11 @@ const HELLO_MAGIC: &[u8; 4] = b"VFH1";
 const HELLO_LEN: usize = 106;
 const SESSION_EVIDENCE_MAGIC: &[u8; 4] = b"VSE1";
 const SESSION_EVIDENCE_LEN: usize = 150;
+const EDIT_REQUEST_MAGIC: &[u8; 4] = b"VEQ1";
+const EDIT_REPLY_MAGIC: &[u8; 4] = b"VEP1";
+const EDIT_REQUEST_FIXED_LEN: usize = 144;
+const EDIT_APPLIED_REPLY_LEN: usize = 29;
+const EDIT_REFUSED_REPLY_LEN: usize = 22;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WireRefusalV1 {
@@ -33,9 +39,141 @@ pub enum WireRefusalV1 {
     InvalidProfile,
     InvalidLimits,
     InvalidEvent,
+    InvalidRequest,
+    InvalidReply,
     EmptyPayload,
     PayloadTooLarge,
     LengthMismatch,
+}
+
+pub fn encode_edit_request(request: &RemoteEditRequestV1) -> Result<Vec<u8>, WireRefusalV1> {
+    let intent_len =
+        u32::try_from(request.intent().len()).map_err(|_| WireRefusalV1::FrameTooLarge)?;
+    let mut frame = Vec::with_capacity(
+        EDIT_REQUEST_FIXED_LEN
+            .checked_add(request.intent().len())
+            .ok_or(WireRefusalV1::FrameTooLarge)?,
+    );
+    frame.extend_from_slice(EDIT_REQUEST_MAGIC);
+    frame.extend_from_slice(&request.request_id.as_bytes());
+    frame.extend_from_slice(&request.actor.home.as_bytes());
+    frame.extend_from_slice(&request.actor.actor.as_bytes());
+    frame.extend_from_slice(&request.document.workspace.home.as_bytes());
+    frame.extend_from_slice(&request.document.workspace.workspace.as_bytes());
+    frame.extend_from_slice(&request.document.document.as_bytes());
+    frame.extend_from_slice(&request.expected_revision.get().to_be_bytes());
+    frame.extend_from_slice(&intent_len.to_be_bytes());
+    frame.extend_from_slice(request.intent());
+    Ok(frame)
+}
+
+pub fn decode_edit_request(
+    frame: &[u8],
+    max_intent_bytes: usize,
+) -> Result<RemoteEditRequestV1, WireRefusalV1> {
+    if max_intent_bytes == 0 {
+        return Err(WireRefusalV1::InvalidLimits);
+    }
+    if frame.len() < EDIT_REQUEST_FIXED_LEN {
+        return Err(WireRefusalV1::Truncated);
+    }
+    if &frame[..4] != EDIT_REQUEST_MAGIC {
+        return Err(WireRefusalV1::BadMagic);
+    }
+    let request_id = EditRequestIdV1::new(frame[4..20].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidRequest)?;
+    let actor_home = VellumHomeIdV1::new(frame[20..52].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let actor = HomeLocalActorIdV1::new(frame[52..68].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let workspace_home = VellumHomeIdV1::new(frame[68..100].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let workspace = HomeLocalWorkspaceIdV1::new(frame[100..116].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let document = HomeLocalDocumentIdV1::new(frame[116..132].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let expected_revision = SourceRevisionV1::new(u64::from_be_bytes(
+        frame[132..140].try_into().expect("fixed slice"),
+    ))
+    .ok_or(WireRefusalV1::InvalidRequest)?;
+    let intent_len = u32::from_be_bytes(frame[140..144].try_into().expect("fixed slice")) as usize;
+    if intent_len == 0 {
+        return Err(WireRefusalV1::InvalidRequest);
+    }
+    if intent_len > max_intent_bytes {
+        return Err(WireRefusalV1::PayloadTooLarge);
+    }
+    let expected_len = EDIT_REQUEST_FIXED_LEN
+        .checked_add(intent_len)
+        .ok_or(WireRefusalV1::FrameTooLarge)?;
+    if frame.len() != expected_len {
+        return Err(WireRefusalV1::LengthMismatch);
+    }
+    RemoteEditRequestV1::new(
+        request_id,
+        FederatedActorRefV1 {
+            home: actor_home,
+            actor,
+        },
+        FederatedDocumentRefV1 {
+            workspace: FederatedWorkspaceRefV1 {
+                home: workspace_home,
+                workspace,
+            },
+            document,
+        },
+        expected_revision,
+        frame[144..].to_vec(),
+    )
+    .ok_or(WireRefusalV1::InvalidRequest)
+}
+
+pub fn encode_edit_reply(request_id: EditRequestIdV1, reply: RemoteEditReplyV1) -> Vec<u8> {
+    let mut frame = Vec::with_capacity(match reply {
+        RemoteEditReplyV1::Applied { .. } => EDIT_APPLIED_REPLY_LEN,
+        RemoteEditReplyV1::Refused(_) => EDIT_REFUSED_REPLY_LEN,
+    });
+    frame.extend_from_slice(EDIT_REPLY_MAGIC);
+    frame.extend_from_slice(&request_id.as_bytes());
+    match reply {
+        RemoteEditReplyV1::Applied { resulting_revision } => {
+            frame.push(1);
+            frame.extend_from_slice(&resulting_revision.get().to_be_bytes());
+        }
+        RemoteEditReplyV1::Refused(refusal) => {
+            frame.push(2);
+            frame.push(refusal as u8);
+        }
+    }
+    frame
+}
+
+pub fn decode_edit_reply(
+    frame: &[u8],
+) -> Result<(EditRequestIdV1, RemoteEditReplyV1), WireRefusalV1> {
+    if frame.len() < EDIT_REFUSED_REPLY_LEN {
+        return Err(WireRefusalV1::Truncated);
+    }
+    if &frame[..4] != EDIT_REPLY_MAGIC {
+        return Err(WireRefusalV1::BadMagic);
+    }
+    let request_id = EditRequestIdV1::new(frame[4..20].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidReply)?;
+    let reply = match frame[20] {
+        1 if frame.len() < EDIT_APPLIED_REPLY_LEN => return Err(WireRefusalV1::Truncated),
+        1 if frame.len() == EDIT_APPLIED_REPLY_LEN => RemoteEditReplyV1::Applied {
+            resulting_revision: SourceRevisionV1::new(u64::from_be_bytes(
+                frame[21..29].try_into().expect("fixed slice"),
+            ))
+            .ok_or(WireRefusalV1::InvalidReply)?,
+        },
+        2 if frame.len() == EDIT_REFUSED_REPLY_LEN => RemoteEditReplyV1::Refused(
+            EditRefusalClassV1::from_u8(frame[21]).ok_or(WireRefusalV1::InvalidReply)?,
+        ),
+        1 | 2 => return Err(WireRefusalV1::LengthMismatch),
+        _ => return Err(WireRefusalV1::InvalidReply),
+    };
+    Ok((request_id, reply))
 }
 
 const DOCUMENT_PRESENT: u8 = 1;

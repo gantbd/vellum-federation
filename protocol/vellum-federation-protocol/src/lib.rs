@@ -210,6 +210,18 @@ pub enum EditRefusalClassV1 {
     Unavailable = 4,
 }
 
+impl EditRefusalClassV1 {
+    pub fn from_u8(value: u8) -> Option<Self> {
+        match value {
+            1 => Some(Self::Unauthorized),
+            2 => Some(Self::StaleRevision),
+            3 => Some(Self::InvalidIntent),
+            4 => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RemoteEditReplyV1 {
     Applied {

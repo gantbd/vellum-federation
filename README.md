@@ -78,4 +78,7 @@ Negotiating source disclosure remains a capability selection, never edit,
 save, persistence, or workspace authority.
 
 See [`docs/discipline.md`](docs/discipline.md) and
-[`docs/roadmap.md`](docs/roadmap.md). Run `make check` for the local gate.
+[`docs/roadmap.md`](docs/roadmap.md). Canonical home/kind/request scoping and the
+optional SPIFFE trust-adapter boundary are defined in
+[`docs/identity-namespaces.md`](docs/identity-namespaces.md). Run `make check`
+for the local gate.

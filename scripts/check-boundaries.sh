@@ -25,5 +25,17 @@ rg -q '`vellum-engine` must never depend on a `vellum-federation-\*` package' do
 rg -q 'only a specifically classified' docs/architecture-boundaries.md
 rg -q 'ordinary current Vellum host API' docs/architecture-boundaries.md
 rg -q 'Vellum remains the writing engine' docs/architecture-boundaries.md
+rg -Fq 'redacted_nonzero_id!(VellumHomeIdV1, 32)' protocol/vellum-federation-protocol/src/lib.rs
+rg -q '^pub struct FederatedWorkspaceRefV1' protocol/vellum-federation-protocol/src/lib.rs
+rg -q '^pub struct FederatedDocumentRefV1' protocol/vellum-federation-protocol/src/lib.rs
+rg -q '^pub struct FederatedActorRefV1' protocol/vellum-federation-protocol/src/lib.rs
+rg -q 'gantbd\.vellum\.federation/v1' docs/identity-namespaces.md
+rg -q 'complete SPIFFE ID participates in the mapping' docs/identity-namespaces.md
+rg -q 'neither becomes a SPIFFE workload' docs/identity-namespaces.md
+
+if rg -q 'spiffe://|SPIFFE|SVID' protocol service ports -g '*.rs'; then
+  echo 'SPIFFE workload provenance must enter through a trust adapter, not federation protocol or services' >&2
+  exit 1
+fi
 
 echo 'Vellum federation remains an external composition with one adapter-only engine seam'

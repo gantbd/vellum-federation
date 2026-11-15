@@ -42,6 +42,10 @@ impl TrustEpochV1 {
     pub fn new(value: u64) -> Option<Self> {
         (value != 0).then_some(Self(value))
     }
+
+    pub fn get(self) -> u64 {
+        self.0
+    }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]

@@ -23,6 +23,10 @@ Canonical replica frames bind the exact workspace, disclosure profile, sequence,
 and bounded payload with fixed tags and big-endian fields. Decoders reject
 unknown disclosure values, cross-type frames, zero identities/sequences,
 oversized payloads, truncation, and trailing bytes.
+The fixed post-trust hello additionally binds home, trust epoch, service
+incarnation, disclosure and schema ranges, and positive operational ceilings.
+Negotiating source disclosure remains a capability selection, never edit,
+save, persistence, or workspace authority.
 
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Run `make check` for the local gate.

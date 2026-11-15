@@ -32,6 +32,33 @@ macro_rules! redacted_nonzero_id {
 redacted_nonzero_id!(VellumHomeIdV1, 32);
 redacted_nonzero_id!(HomeLocalWorkspaceIdV1, 16);
 redacted_nonzero_id!(HomeLocalDocumentIdV1, 16);
+redacted_nonzero_id!(ServiceIncarnationV1, 16);
+redacted_nonzero_id!(TransportExporterV1, 32);
+
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct TrustEpochV1(u64);
+
+impl TrustEpochV1 {
+    pub fn new(value: u64) -> Option<Self> {
+        (value != 0).then_some(Self(value))
+    }
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct VerifiedHomeV1 {
+    pub home: VellumHomeIdV1,
+    pub trust_epoch: TrustEpochV1,
+}
+
+impl fmt::Debug for VerifiedHomeV1 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("VerifiedHomeV1")
+            .field("home", &self.home)
+            .field("trust_epoch", &"<redacted>")
+            .finish()
+    }
+}
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct SourceRevisionV1(u64);
@@ -78,7 +105,7 @@ impl fmt::Debug for FederatedDocumentRefV1 {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 #[repr(u16)]
 pub enum DisclosureProfileV1 {
     Metadata = 1,
@@ -174,6 +201,46 @@ pub struct NegotiatedFederationV1 {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct FederationHelloV1 {
+    pub home: VellumHomeIdV1,
+    pub trust_epoch: TrustEpochV1,
+    pub incarnation: ServiceIncarnationV1,
+    pub capabilities: FederationCapabilitiesV1,
+}
+
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct FederationSessionV1 {
+    pub local: VerifiedHomeV1,
+    pub peer: VerifiedHomeV1,
+    pub local_incarnation: ServiceIncarnationV1,
+    pub peer_incarnation: ServiceIncarnationV1,
+    pub exporter: TransportExporterV1,
+    pub negotiated: NegotiatedFederationV1,
+}
+
+impl fmt::Debug for FederationSessionV1 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("FederationSessionV1")
+            .field("local", &self.local)
+            .field("peer", &self.peer)
+            .field("local_incarnation", &self.local_incarnation)
+            .field("peer_incarnation", &self.peer_incarnation)
+            .field("exporter", &self.exporter)
+            .field("negotiated", &self.negotiated)
+            .finish()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SessionRefusalV1 {
+    LocalIdentityMismatch,
+    PeerIdentityMismatch,
+    SelfSession,
+    Negotiation(NegotiationRefusalV1),
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NegotiationRefusalV1 {
     InvalidLimits,
     Protocol,
@@ -219,5 +286,33 @@ pub fn negotiate_v1(
             .highest_common(peer.receipt_schema)
             .ok_or(NegotiationRefusalV1::ReceiptSchema)?,
         limits: local.limits.bounded_minimum(peer.limits),
+    })
+}
+
+pub fn bind_session_v1(
+    local: VerifiedHomeV1,
+    peer: VerifiedHomeV1,
+    local_hello: FederationHelloV1,
+    peer_hello: FederationHelloV1,
+    exporter: TransportExporterV1,
+) -> Result<FederationSessionV1, SessionRefusalV1> {
+    if local.home != local_hello.home || local.trust_epoch != local_hello.trust_epoch {
+        return Err(SessionRefusalV1::LocalIdentityMismatch);
+    }
+    if peer.home != peer_hello.home || peer.trust_epoch != peer_hello.trust_epoch {
+        return Err(SessionRefusalV1::PeerIdentityMismatch);
+    }
+    if local.home == peer.home {
+        return Err(SessionRefusalV1::SelfSession);
+    }
+    let negotiated = negotiate_v1(local_hello.capabilities, peer_hello.capabilities)
+        .map_err(SessionRefusalV1::Negotiation)?;
+    Ok(FederationSessionV1 {
+        local,
+        peer,
+        local_incarnation: local_hello.incarnation,
+        peer_incarnation: peer_hello.incarnation,
+        exporter,
+        negotiated,
     })
 }

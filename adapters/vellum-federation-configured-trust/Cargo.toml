@@ -1,0 +1,15 @@
+[package]
+name = "vellum-federation-configured-trust"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Configured certificate and disclosure trust for Vellum federation"
+
+[dependencies]
+vellum-federation-protocol = { path = "../../protocol/vellum-federation-protocol", version = "=0.1.0" }
+vellum-federation-trust-port = { path = "../../ports/vellum-federation-trust-port", version = "=0.1.0" }
+
+[lints]
+workspace = true

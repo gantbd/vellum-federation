@@ -2,8 +2,11 @@
 
 1. Freeze home-scoped workspace/document/source identities and exact bounded
    protocol, disclosure, event, snapshot, edit, and receipt negotiation.
-2. Add verified-home trust composition and bind both identities, trust epochs,
-   service incarnations, exporter, and selected disclosure/profile set.
+2. Implemented foundation: verified-home trust composition binds both
+   identities, trust epochs, service incarnations, exporter, and selected
+   disclosure/profile set. Certificate provenance, identity/exporter
+   substitution, encrypted-only downgrade, self-session, and live disclosure
+   revocation fail closed with content-safe diagnostics.
 3. Define authoritative workspace events, direct-home replica journals, exact
    replay/divergence, explicit gaps, and authorized bounded snapshots.
 4. Add remote edit admission and persistence reconciliation ports with scoped

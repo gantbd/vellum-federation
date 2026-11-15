@@ -3,5 +3,29 @@
 version = 4
 
 [[package]]
+name = "vellum-federation-configured-trust"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+ "vellum-federation-trust-port",
+]
+
+[[package]]
 name = "vellum-federation-protocol"
 version = "0.1.0"
+
+[[package]]
+name = "vellum-federation-session"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-configured-trust",
+ "vellum-federation-protocol",
+ "vellum-federation-trust-port",
+]
+
+[[package]]
+name = "vellum-federation-trust-port"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+]

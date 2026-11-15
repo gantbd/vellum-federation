@@ -36,6 +36,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "vellum-federation-replica-directory"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+ "vellum-federation-replica",
+ "vellum-federation-replica-durable",
+ "vellum-federation-replica-store-port",
+]
+
+[[package]]
 name = "vellum-federation-replica-durable"
 version = "0.1.0"
 dependencies = [

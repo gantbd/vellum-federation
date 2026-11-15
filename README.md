@@ -38,8 +38,17 @@ separate effect-free replica-store port and durable owner now compare-exchange
 those bytes: exact receipts publish progress, definite refusal preserves the
 prior journal, unknown or malformed outcomes fence, and fresh recovery
 revalidates the canonical checkpoint. These layers grant no edit, save, source,
-revision-allocation, or authoritative-export power; a concrete physical adapter
-remains separate work.
+revision-allocation, or authoritative-export power. The separate
+`vellum-federation-replica-directory` adapter supplies one private local Unix
+mechanism: a scope-bearing checksummed record in a mode-0700 directory,
+mode-0600 lock/pending/head resources, serialized compare-exchange,
+synchronized atomic replacement, exact reread before receipt, and corruption
+or interruption-residue fencing. Durable-owner replacement reopens the
+canonical disclosure-bound journal and exact replay performs no write. It
+grants no edit, save, source, revision-allocation, retention, or federation
+authority and does not claim automatic residue repair, network-filesystem
+behavior, hostile-storage integrity, hardware power-loss survival, backup, or
+erasure.
 Remote edit admission uses a separately scoped actor, document, request ID,
 expected source revision, and opaque intent. The federation service preflights
 exact replay/conflict/capacity before effects and retains the original reply;

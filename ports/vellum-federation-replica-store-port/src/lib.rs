@@ -14,6 +14,10 @@ impl ReplicaStoreScopeV1 {
     pub fn new(bytes: [u8; 32]) -> Option<Self> {
         (bytes != [0; 32]).then_some(Self(bytes))
     }
+
+    pub const fn as_bytes(self) -> [u8; 32] {
+        self.0
+    }
 }
 
 impl fmt::Debug for ReplicaStoreScopeV1 {

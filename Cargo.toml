@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "adapters/vellum-federation-configured-trust",
+    "adapters/vellum-federation-replica-directory",
     "ports/vellum-federation-edit-port",
     "ports/vellum-federation-replica-store-port",
     "ports/vellum-federation-trust-port",

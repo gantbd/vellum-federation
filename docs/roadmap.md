@@ -23,8 +23,14 @@
    and decode. An effect-free scoped compare-exchange store port and
    commit-gated durable owner now add exact receipt validation,
    definite-refusal rollback, unknown-outcome fencing, replay suppression, and
-   canonical recovery. A concrete physical storage adapter and process/power-loss
-   qualification remain open.
+   canonical recovery. The concrete private-local Unix directory adapter now
+   adds a canonical scope-bearing checksummed record, mode-0700/0600 resources,
+   a separate serialized operation lock, synchronized atomic head replacement,
+   exact receipt reread, owner replacement, stale-CAS refusal, one-winner
+   concurrent CAS, every-single-bit corruption refusal, and explicit pending/
+   lock residue fencing. Automatic residue remediation, process-cut injection
+   at every syscall, hardware power-loss qualification, network filesystems,
+   backups, hostile storage, and erasure remain open.
 4. Remote edit admission foundation implemented: home-scoped actor/document and
    request identities, opaque nonempty edit intent, revision-safe closed reply,
    pre-effect scope/replay/conflict/capacity checks, exact retained receipts,

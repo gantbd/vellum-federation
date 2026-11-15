@@ -2,6 +2,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod checkpoint;
+
 pub use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1,
 };

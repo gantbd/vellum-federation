@@ -31,6 +31,11 @@ Canonical session evidence records both verified homes, trust epochs, service
 incarnations, and the negotiated disclosure/schema/limit set. It deliberately
 omits the transport exporter and cannot replace current trust revalidation or
 grant read, edit, save, persistence, or retention authority.
+The replica journal's versioned canonical checkpoint preserves its subscriber,
+workspace, disclosure profile, snapshot, exact event suffix, and next sequence.
+Encoding and recovery revalidate the complete journal under current limits;
+the bytes confer no source or persistence authority. Commit gating and the
+concrete storage owner remain separate work.
 Remote edit admission uses a separately scoped actor, document, request ID,
 expected source revision, and opaque intent. The federation service preflights
 exact replay/conflict/capacity before effects and retains the original reply;

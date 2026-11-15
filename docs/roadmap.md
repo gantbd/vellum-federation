@@ -16,9 +16,11 @@
    source bytes or granting edit/save authority. Canonical session evidence now
    binds both homes/epochs/incarnations plus the negotiated disclosure, schemas,
    and limits while deliberately excluding the exporter and any authority.
-   Durable replica storage/recovery remains open. Canonical bounded event,
-   snapshot, acknowledgement, session-evidence, and fixed disclosure-aware
-   hello frames and fixtures are implemented.
+   Canonical bounded event, snapshot, acknowledgement, session-evidence, and
+   fixed disclosure-aware hello frames and fixtures are implemented. The
+   complete disclosure-bound journal also has a canonical versioned checkpoint
+   encoding that revalidates current limits and journal invariants on encode
+   and decode. A commit-gated storage owner remains open.
 4. Remote edit admission foundation implemented: home-scoped actor/document and
    request identities, opaque nonempty edit intent, revision-safe closed reply,
    pre-effect scope/replay/conflict/capacity checks, exact retained receipts,

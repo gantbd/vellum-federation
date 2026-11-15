@@ -3,6 +3,7 @@ members = [
     "adapters/vellum-federation-configured-trust",
     "ports/vellum-federation-trust-port",
     "protocol/vellum-federation-protocol",
+    "service/vellum-federation-replica",
     "service/vellum-federation-session",
 ]
 resolver = "3"

@@ -7,8 +7,12 @@
    disclosure/profile set. Certificate provenance, identity/exporter
    substitution, encrypted-only downgrade, self-session, and live disclosure
    revocation fail closed with content-safe diagnostics.
-3. Define authoritative workspace events, direct-home replica journals, exact
-   replay/divergence, explicit gaps, and authorized bounded snapshots.
+3. Implemented replica foundation: authoritative event/snapshot envelopes and
+   a disclosure-bound direct-home journal provide exact replay/divergence,
+   explicit gaps, bounded snapshots, checkpoint recovery, authenticated-home
+   enforcement, and imported-event non-export. Still open: freeze the closed
+   workspace event vocabulary, canonical wire encoding/fixtures, and durable
+   replica storage/recovery.
 4. Add remote edit admission and persistence reconciliation ports with scoped
    receipts and three-way execution certainty.
 5. Compose Vellum authentication/current authority, durable publication,

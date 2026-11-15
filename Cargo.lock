@@ -15,6 +15,13 @@ name = "vellum-federation-protocol"
 version = "0.1.0"
 
 [[package]]
+name = "vellum-federation-replica"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+]
+
+[[package]]
 name = "vellum-federation-session"
 version = "0.1.0"
 dependencies = [

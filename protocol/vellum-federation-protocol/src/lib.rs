@@ -95,6 +95,68 @@ pub struct FederatedDocumentRefV1 {
     pub document: HomeLocalDocumentIdV1,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuthoritativeWorkspaceEventV1 {
+    pub workspace: FederatedWorkspaceRefV1,
+    pub sequence: u64,
+    pub disclosure: DisclosureProfileV1,
+    bytes: Vec<u8>,
+}
+
+impl AuthoritativeWorkspaceEventV1 {
+    pub fn new(
+        workspace: FederatedWorkspaceRefV1,
+        sequence: u64,
+        disclosure: DisclosureProfileV1,
+        bytes: Vec<u8>,
+    ) -> Option<Self> {
+        (sequence != 0 && !bytes.is_empty()).then_some(Self {
+            workspace,
+            sequence,
+            disclosure,
+            bytes,
+        })
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuthoritativeWorkspaceSnapshotV1 {
+    pub workspace: FederatedWorkspaceRefV1,
+    pub base_sequence: u64,
+    pub disclosure: DisclosureProfileV1,
+    bytes: Vec<u8>,
+}
+
+impl AuthoritativeWorkspaceSnapshotV1 {
+    pub fn new(
+        workspace: FederatedWorkspaceRefV1,
+        base_sequence: u64,
+        disclosure: DisclosureProfileV1,
+        bytes: Vec<u8>,
+    ) -> Option<Self> {
+        (base_sequence != 0 && !bytes.is_empty()).then_some(Self {
+            workspace,
+            base_sequence,
+            disclosure,
+            bytes,
+        })
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ReplicaAcknowledgementV1 {
+    pub workspace: FederatedWorkspaceRefV1,
+    pub sequence: u64,
+}
+
 impl fmt::Debug for FederatedDocumentRefV1 {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter

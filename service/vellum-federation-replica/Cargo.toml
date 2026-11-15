@@ -1,0 +1,14 @@
+[package]
+name = "vellum-federation-replica"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Disclosure-bound direct-home replica journal for Vellum federation"
+
+[dependencies]
+vellum-federation-protocol = { path = "../../protocol/vellum-federation-protocol", version = "=0.1.0" }
+
+[lints]
+workspace = true

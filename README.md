@@ -13,5 +13,12 @@ composition additionally requires exact configured homes and trust epochs,
 certificate-verified provenance, one exporter, and current authorization for the
 selected disclosure profile before binding both service incarnations.
 
+The replica package adds a bounded, disclosure-bound direct-home journal for
+authoritative event envelopes and snapshots. It detects gaps and divergence,
+supports exact replay and checkpoint recovery, and refuses both non-home input
+and authoritative re-export. A replica acknowledgement means only that the
+named sequence has been incorporated into that replica; it is not evidence of
+read, edit, save, persistence, review, attention, or semantic freshness.
+
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Run `make check` for the local gate.

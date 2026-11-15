@@ -1,6 +1,6 @@
 use vellum_federation_protocol::{
-    AuthoritativeWorkspaceEventV1, DisclosureProfileV1, FederatedWorkspaceRefV1,
-    HomeLocalWorkspaceIdV1, VellumHomeIdV1,
+    AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
+    FederatedWorkspaceRefV1, HomeLocalWorkspaceIdV1, VellumHomeIdV1,
 };
 use vellum_federation_replica::{ReplicaApplyV1, ReplicaJournalV1, ReplicaLimitsV1};
 use vellum_federation_replica_durable::{
@@ -249,4 +249,45 @@ fn unknown_and_invalid_receipts_fence_until_fresh_recovery() {
         DurableReplicaPublicationV1::OutcomeUnknown
     );
     assert!(second.is_fenced());
+}
+
+#[test]
+fn snapshot_repair_is_commit_gated_disclosure_bound_and_recoverable() {
+    let mut store = MemoryStore::new();
+    let mut durable = initialized(&mut store);
+    let snapshot = AuthoritativeWorkspaceSnapshotV1::new(
+        workspace(),
+        4,
+        DisclosureProfileV1::Metadata,
+        b"metadata snapshot".to_vec(),
+    )
+    .unwrap();
+    store.next = NextOffer::Refuse;
+    assert_eq!(
+        durable.apply_snapshot(home(1), snapshot.clone(), &mut store),
+        DurableReplicaPublicationV1::StoreRefused
+    );
+    assert_eq!(durable.acknowledgement(), 0);
+    assert_eq!(
+        durable.apply_snapshot(home(1), snapshot.clone(), &mut store),
+        DurableReplicaPublicationV1::Published(ReplicaApplyV1::SnapshotApplied)
+    );
+    let offers = store.offers;
+    assert_eq!(
+        durable.apply_snapshot(home(1), snapshot, &mut store),
+        DurableReplicaPublicationV1::Published(ReplicaApplyV1::Replay)
+    );
+    assert_eq!(store.offers, offers);
+    drop(durable);
+    assert_eq!(
+        DurableReplicaV1::recover(
+            limits(),
+            ReplicaStoreScopeV1::new([9; 32]).unwrap(),
+            1_024,
+            &mut store,
+        )
+        .unwrap()
+        .acknowledgement(),
+        4
+    );
 }

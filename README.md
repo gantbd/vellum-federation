@@ -19,6 +19,10 @@ supports exact replay and checkpoint recovery, and refuses both non-home input
 and authoritative re-export. A replica acknowledgement means only that the
 named sequence has been incorporated into that replica; it is not evidence of
 read, edit, save, persistence, review, attention, or semantic freshness.
+Canonical replica frames bind the exact workspace, disclosure profile, sequence,
+and bounded payload with fixed tags and big-endian fields. Decoders reject
+unknown disclosure values, cross-type frames, zero identities/sequences,
+oversized payloads, truncation, and trailing bytes.
 
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Run `make check` for the local gate.

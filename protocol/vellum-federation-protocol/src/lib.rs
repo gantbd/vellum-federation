@@ -175,12 +175,16 @@ pub enum DisclosureProfileV1 {
 }
 
 impl DisclosureProfileV1 {
-    fn from_u16(value: u16) -> Option<Self> {
+    pub fn from_u16(value: u16) -> Option<Self> {
         match value {
             1 => Some(Self::Metadata),
             2 => Some(Self::Source),
             _ => None,
         }
+    }
+
+    pub fn as_u16(self) -> u16 {
+        self as u16
     }
 }
 

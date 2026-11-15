@@ -11,8 +11,9 @@
    a disclosure-bound direct-home journal provide exact replay/divergence,
    explicit gaps, bounded snapshots, checkpoint recovery, authenticated-home
    enforcement, and imported-event non-export. Still open: freeze the closed
-   workspace event vocabulary, canonical wire encoding/fixtures, and durable
-   replica storage/recovery.
+   workspace event vocabulary, hello/session wire encoding, and durable replica
+   storage/recovery. Canonical bounded event, snapshot, and acknowledgement
+   frames and fixtures are implemented.
 4. Add remote edit admission and persistence reconciliation ports with scoped
    receipts and three-way execution certainty.
 5. Compose Vellum authentication/current authority, durable publication,

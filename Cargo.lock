@@ -36,3 +36,10 @@ version = "0.1.0"
 dependencies = [
  "vellum-federation-protocol",
 ]
+
+[[package]]
+name = "vellum-federation-wire"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+]

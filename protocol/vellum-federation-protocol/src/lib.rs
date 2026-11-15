@@ -34,6 +34,7 @@ redacted_nonzero_id!(HomeLocalWorkspaceIdV1, 16);
 redacted_nonzero_id!(HomeLocalDocumentIdV1, 16);
 redacted_nonzero_id!(ServiceIncarnationV1, 16);
 redacted_nonzero_id!(TransportExporterV1, 32);
+redacted_nonzero_id!(SourceDigestV1, 32);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct TrustEpochV1(u64);
@@ -74,6 +75,45 @@ impl SourceRevisionV1 {
 
     pub fn get(self) -> u64 {
         self.0
+    }
+}
+
+/// A closed, content-safe fact authored by the authoritative Vellum home.
+///
+/// These facts do not grant edit, save, persistence, membership, or retention
+/// authority. In particular, `SourceAdvanced` carries only a digest; source
+/// bytes remain governed by the independently negotiated disclosure profile.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum WorkspaceEventFactV1 {
+    DocumentPresent {
+        document: HomeLocalDocumentIdV1,
+        revision: SourceRevisionV1,
+    },
+    SourceAdvanced {
+        document: HomeLocalDocumentIdV1,
+        prior_revision: SourceRevisionV1,
+        resulting_revision: SourceRevisionV1,
+        digest: SourceDigestV1,
+    },
+    DocumentAbsent {
+        document: HomeLocalDocumentIdV1,
+        final_revision: SourceRevisionV1,
+    },
+}
+
+impl WorkspaceEventFactV1 {
+    pub fn source_advanced(
+        document: HomeLocalDocumentIdV1,
+        prior_revision: SourceRevisionV1,
+        resulting_revision: SourceRevisionV1,
+        digest: SourceDigestV1,
+    ) -> Option<Self> {
+        (prior_revision < resulting_revision).then_some(Self::SourceAdvanced {
+            document,
+            prior_revision,
+            resulting_revision,
+            digest,
+        })
     }
 }
 

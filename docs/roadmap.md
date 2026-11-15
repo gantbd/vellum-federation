@@ -10,10 +10,13 @@
 3. Implemented replica foundation: authoritative event/snapshot envelopes and
    a disclosure-bound direct-home journal provide exact replay/divergence,
    explicit gaps, bounded snapshots, checkpoint recovery, authenticated-home
-   enforcement, and imported-event non-export. Still open: freeze the closed
-   workspace event vocabulary, session-evidence wire encoding, and durable
-   replica storage/recovery. Canonical bounded event, snapshot, acknowledgement,
-   and fixed disclosure-aware hello frames and fixtures are implemented.
+   enforcement, and imported-event non-export. The closed content-safe workspace
+   fact vocabulary now distinguishes document presence, monotone source-revision
+   advancement with a redacted digest, and document absence without carrying
+   source bytes or granting edit/save authority. Still open: session-evidence
+   wire encoding and durable replica storage/recovery. Canonical bounded event,
+   snapshot, acknowledgement, and fixed disclosure-aware hello frames and
+   fixtures are implemented.
 4. Add remote edit admission and persistence reconciliation ports with scoped
    receipts and three-way execution certainty.
 5. Compose Vellum authentication/current authority, durable publication,

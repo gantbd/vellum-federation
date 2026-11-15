@@ -5,8 +5,9 @@
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
-    TrustEpochV1, VellumHomeIdV1,
+    HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1,
+    ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1,
+    WorkspaceEventFactV1,
 };
 
 const MAGIC: &[u8; 4] = b"VFW1";
@@ -28,9 +29,95 @@ pub enum WireRefusalV1 {
     InvalidSequence,
     InvalidProfile,
     InvalidLimits,
+    InvalidEvent,
     EmptyPayload,
     PayloadTooLarge,
     LengthMismatch,
+}
+
+const DOCUMENT_PRESENT: u8 = 1;
+const SOURCE_ADVANCED: u8 = 2;
+const DOCUMENT_ABSENT: u8 = 3;
+const DOCUMENT_EVENT_LEN: usize = 25;
+const SOURCE_ADVANCED_LEN: usize = 65;
+
+/// Encodes one authoritative, content-safe Vellum workspace fact.
+pub fn encode_workspace_event_fact(fact: WorkspaceEventFactV1) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(match fact {
+        WorkspaceEventFactV1::SourceAdvanced { .. } => SOURCE_ADVANCED_LEN,
+        _ => DOCUMENT_EVENT_LEN,
+    });
+    match fact {
+        WorkspaceEventFactV1::DocumentPresent { document, revision } => {
+            bytes.push(DOCUMENT_PRESENT);
+            bytes.extend_from_slice(&document.as_bytes());
+            bytes.extend_from_slice(&revision.get().to_be_bytes());
+        }
+        WorkspaceEventFactV1::SourceAdvanced {
+            document,
+            prior_revision,
+            resulting_revision,
+            digest,
+        } => {
+            bytes.push(SOURCE_ADVANCED);
+            bytes.extend_from_slice(&document.as_bytes());
+            bytes.extend_from_slice(&prior_revision.get().to_be_bytes());
+            bytes.extend_from_slice(&resulting_revision.get().to_be_bytes());
+            bytes.extend_from_slice(&digest.as_bytes());
+        }
+        WorkspaceEventFactV1::DocumentAbsent {
+            document,
+            final_revision,
+        } => {
+            bytes.push(DOCUMENT_ABSENT);
+            bytes.extend_from_slice(&document.as_bytes());
+            bytes.extend_from_slice(&final_revision.get().to_be_bytes());
+        }
+    }
+    bytes
+}
+
+/// Decodes only the frozen V1 workspace fact vocabulary and exact lengths.
+pub fn decode_workspace_event_fact(bytes: &[u8]) -> Result<WorkspaceEventFactV1, WireRefusalV1> {
+    let tag = *bytes.first().ok_or(WireRefusalV1::Truncated)?;
+    let expected_len = match tag {
+        DOCUMENT_PRESENT | DOCUMENT_ABSENT => DOCUMENT_EVENT_LEN,
+        SOURCE_ADVANCED => SOURCE_ADVANCED_LEN,
+        _ => return Err(WireRefusalV1::InvalidEvent),
+    };
+    if bytes.len() < expected_len {
+        return Err(WireRefusalV1::Truncated);
+    }
+    if bytes.len() != expected_len {
+        return Err(WireRefusalV1::LengthMismatch);
+    }
+    let document = HomeLocalDocumentIdV1::new(bytes[1..17].try_into().expect("fixed slice"))
+        .ok_or(WireRefusalV1::InvalidIdentity)?;
+    let revision = |range: core::ops::Range<usize>| {
+        SourceRevisionV1::new(u64::from_be_bytes(
+            bytes[range].try_into().expect("fixed slice"),
+        ))
+        .ok_or(WireRefusalV1::InvalidEvent)
+    };
+    match tag {
+        DOCUMENT_PRESENT => Ok(WorkspaceEventFactV1::DocumentPresent {
+            document,
+            revision: revision(17..25)?,
+        }),
+        SOURCE_ADVANCED => WorkspaceEventFactV1::source_advanced(
+            document,
+            revision(17..25)?,
+            revision(25..33)?,
+            SourceDigestV1::new(bytes[33..65].try_into().expect("fixed slice"))
+                .ok_or(WireRefusalV1::InvalidEvent)?,
+        )
+        .ok_or(WireRefusalV1::InvalidEvent),
+        DOCUMENT_ABSENT => Ok(WorkspaceEventFactV1::DocumentAbsent {
+            document,
+            final_revision: revision(17..25)?,
+        }),
+        _ => unreachable!(),
+    }
 }
 
 pub fn encode_hello(hello: FederationHelloV1) -> [u8; HELLO_LEN] {

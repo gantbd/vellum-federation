@@ -1,12 +1,14 @@
 use vellum_federation_protocol::{
     AuthoritativeWorkspaceEventV1, AuthoritativeWorkspaceSnapshotV1, DisclosureProfileV1,
     FederatedWorkspaceRefV1, FederationCapabilitiesV1, FederationHelloV1, FederationLimitsV1,
-    HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1, ServiceIncarnationV1,
-    TrustEpochV1, VellumHomeIdV1,
+    HomeLocalDocumentIdV1, HomeLocalWorkspaceIdV1, ProfileRangeV1, ReplicaAcknowledgementV1,
+    ServiceIncarnationV1, SourceDigestV1, SourceRevisionV1, TrustEpochV1, VellumHomeIdV1,
+    WorkspaceEventFactV1,
 };
 use vellum_federation_wire::{
     WireRefusalV1, decode_acknowledgement, decode_event, decode_hello, decode_snapshot,
-    encode_acknowledgement, encode_event, encode_hello, encode_snapshot,
+    decode_workspace_event_fact, encode_acknowledgement, encode_event, encode_hello,
+    encode_snapshot, encode_workspace_event_fact,
 };
 
 fn workspace() -> FederatedWorkspaceRefV1 {
@@ -137,5 +139,86 @@ fn decoder_refuses_cross_type_trailing_unknown_and_oversize_frames() {
     assert_eq!(
         decode_event(&unknown_disclosure, 2),
         Err(WireRefusalV1::InvalidDisclosure)
+    );
+}
+
+#[test]
+fn closed_workspace_event_facts_are_canonical_and_content_safe() {
+    let document = HomeLocalDocumentIdV1::new([0x44; 16]).unwrap();
+    let present = WorkspaceEventFactV1::DocumentPresent {
+        document,
+        revision: SourceRevisionV1::new(1).unwrap(),
+    };
+    let advanced = WorkspaceEventFactV1::source_advanced(
+        document,
+        SourceRevisionV1::new(1).unwrap(),
+        SourceRevisionV1::new(2).unwrap(),
+        SourceDigestV1::new([0x55; 32]).unwrap(),
+    )
+    .unwrap();
+    let absent = WorkspaceEventFactV1::DocumentAbsent {
+        document,
+        final_revision: SourceRevisionV1::new(2).unwrap(),
+    };
+
+    for fact in [present, advanced, absent] {
+        let bytes = encode_workspace_event_fact(fact);
+        assert_eq!(decode_workspace_event_fact(&bytes), Ok(fact));
+        assert!(!format!("{fact:?}").contains("5555"));
+    }
+
+    let encoded = encode_workspace_event_fact(advanced);
+    assert_eq!(encoded.len(), 65);
+    assert_eq!(encoded[0], 2);
+    assert_eq!(&encoded[1..17], &[0x44; 16]);
+    assert_eq!(&encoded[17..25], &1_u64.to_be_bytes());
+    assert_eq!(&encoded[25..33], &2_u64.to_be_bytes());
+    assert_eq!(&encoded[33..], &[0x55; 32]);
+}
+
+#[test]
+fn workspace_event_fact_decoder_refuses_unknown_noncanonical_and_malformed_values() {
+    let document = HomeLocalDocumentIdV1::new([0x44; 16]).unwrap();
+    assert!(
+        WorkspaceEventFactV1::source_advanced(
+            document,
+            SourceRevisionV1::new(2).unwrap(),
+            SourceRevisionV1::new(2).unwrap(),
+            SourceDigestV1::new([0x55; 32]).unwrap(),
+        )
+        .is_none()
+    );
+
+    let valid = encode_workspace_event_fact(WorkspaceEventFactV1::DocumentPresent {
+        document,
+        revision: SourceRevisionV1::new(1).unwrap(),
+    });
+    assert_eq!(
+        decode_workspace_event_fact(&valid[..24]),
+        Err(WireRefusalV1::Truncated)
+    );
+    let mut trailing = valid.clone();
+    trailing.push(0);
+    assert_eq!(
+        decode_workspace_event_fact(&trailing),
+        Err(WireRefusalV1::LengthMismatch)
+    );
+    let mut unknown = valid.clone();
+    unknown[0] = 99;
+    assert_eq!(
+        decode_workspace_event_fact(&unknown),
+        Err(WireRefusalV1::InvalidEvent)
+    );
+    let mut zero_document = valid.clone();
+    zero_document[1..17].fill(0);
+    assert_eq!(
+        decode_workspace_event_fact(&zero_document),
+        Err(WireRefusalV1::InvalidIdentity)
+    );
+    let mut zero_revision = valid;
+    zero_revision[17..25].fill(0);
+    assert_eq!(
+        decode_workspace_event_fact(&zero_revision),
+        Err(WireRefusalV1::InvalidEvent)
     );
 }

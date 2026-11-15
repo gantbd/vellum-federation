@@ -19,8 +19,14 @@
    Durable replica storage/recovery remains open. Canonical bounded event,
    snapshot, acknowledgement, session-evidence, and fixed disclosure-aware
    hello frames and fixtures are implemented.
-4. Add remote edit admission and persistence reconciliation ports with scoped
-   receipts and three-way execution certainty.
+4. Remote edit admission foundation implemented: home-scoped actor/document and
+   request identities, opaque nonempty edit intent, revision-safe closed reply,
+   pre-effect scope/replay/conflict/capacity checks, exact retained receipts,
+   recovery validation, and client-side exact uncertainty fencing. The separate
+   effect-free edit port exposes reply, definitely-not-executed, and
+   outcome-unknown without defining Vellum edit semantics. Concrete Vellum
+   authority/persistence composition and durable receipt publication remain
+   open.
 5. Compose Vellum authentication/current authority, durable publication,
    bounded transport, disclosure revocation, and irreversible session close.
 6. Qualify partitions, reconnect, revocation, lost replies, receipt recovery,

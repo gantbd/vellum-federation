@@ -35,6 +35,8 @@ redacted_nonzero_id!(HomeLocalDocumentIdV1, 16);
 redacted_nonzero_id!(ServiceIncarnationV1, 16);
 redacted_nonzero_id!(TransportExporterV1, 32);
 redacted_nonzero_id!(SourceDigestV1, 32);
+redacted_nonzero_id!(HomeLocalActorIdV1, 16);
+redacted_nonzero_id!(EditRequestIdV1, 16);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct TrustEpochV1(u64);
@@ -137,6 +139,83 @@ impl fmt::Debug for FederatedWorkspaceRefV1 {
 pub struct FederatedDocumentRefV1 {
     pub workspace: FederatedWorkspaceRefV1,
     pub document: HomeLocalDocumentIdV1,
+}
+
+#[derive(Clone, Copy, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct FederatedActorRefV1 {
+    pub home: VellumHomeIdV1,
+    pub actor: HomeLocalActorIdV1,
+}
+
+impl fmt::Debug for FederatedActorRefV1 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("FederatedActorRefV1")
+            .field("home", &self.home)
+            .field("actor", &self.actor)
+            .finish()
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+pub struct RemoteEditRequestV1 {
+    pub request_id: EditRequestIdV1,
+    pub actor: FederatedActorRefV1,
+    pub document: FederatedDocumentRefV1,
+    pub expected_revision: SourceRevisionV1,
+    intent: Vec<u8>,
+}
+
+impl fmt::Debug for RemoteEditRequestV1 {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("RemoteEditRequestV1")
+            .field("request_id", &self.request_id)
+            .field("actor", &self.actor)
+            .field("document", &self.document)
+            .field("expected_revision", &self.expected_revision)
+            .field("intent_bytes", &self.intent.len())
+            .finish()
+    }
+}
+
+impl RemoteEditRequestV1 {
+    pub fn new(
+        request_id: EditRequestIdV1,
+        actor: FederatedActorRefV1,
+        document: FederatedDocumentRefV1,
+        expected_revision: SourceRevisionV1,
+        intent: Vec<u8>,
+    ) -> Option<Self> {
+        (!intent.is_empty()).then_some(Self {
+            request_id,
+            actor,
+            document,
+            expected_revision,
+            intent,
+        })
+    }
+
+    pub fn intent(&self) -> &[u8] {
+        &self.intent
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum EditRefusalClassV1 {
+    Unauthorized = 1,
+    StaleRevision = 2,
+    InvalidIntent = 3,
+    Unavailable = 4,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RemoteEditReplyV1 {
+    Applied {
+        resulting_revision: SourceRevisionV1,
+    },
+    Refused(EditRefusalClassV1),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

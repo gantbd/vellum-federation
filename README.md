@@ -31,6 +31,13 @@ Canonical session evidence records both verified homes, trust epochs, service
 incarnations, and the negotiated disclosure/schema/limit set. It deliberately
 omits the transport exporter and cannot replace current trust revalidation or
 grant read, edit, save, persistence, or retention authority.
+Remote edit admission uses a separately scoped actor, document, request ID,
+expected source revision, and opaque intent. The federation service preflights
+exact replay/conflict/capacity before effects and retains the original reply;
+its client preserves only the equal uncertain request. An effect-free port keeps
+reply, definitely-not-executed, and outcome-unknown distinct. The concrete
+adapter must still invoke ordinary current Vellum authority and persistence;
+federation never interprets or executes the edit itself.
 The fixed post-trust hello additionally binds home, trust epoch, service
 incarnation, disclosure and schema ranges, and positive operational ceilings.
 Negotiating source disclosure remains a capability selection, never edit,

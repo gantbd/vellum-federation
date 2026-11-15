@@ -1,10 +1,12 @@
 [workspace]
 members = [
     "adapters/vellum-federation-configured-trust",
+    "ports/vellum-federation-edit-port",
     "ports/vellum-federation-trust-port",
     "protocol/vellum-federation-protocol",
     "protocol/vellum-federation-wire",
     "service/vellum-federation-replica",
+    "service/vellum-federation-edit-admission",
     "service/vellum-federation-session",
 ]
 resolver = "3"

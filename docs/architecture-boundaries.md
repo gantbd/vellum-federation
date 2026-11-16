@@ -39,6 +39,7 @@ The classified adapter does so through Vellum's transport-neutral service/Host
 protocol and its restart-stable durable effect profile. Its configured binding,
 not remote input, selects the authenticated client and local document. Only
 `EditPersistenceV1::Durable` can become a federated applied reply; partial or
-uncertain persistence remains uncertain. Adapter `close` is absorbing; the
-session/transport owner is responsible for invoking it on disclosure or trust
-revocation.
+uncertain persistence remains uncertain. Adapter `close` is absorbing. The
+federation connection owner revalidates the bound session and irreversibly
+closes its injected transport on disclosure or trust revocation; physical
+transport composition remains deployment-owned.

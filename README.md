@@ -86,8 +86,11 @@ The complete federation request ID stays the durable operation identity while
 an exact configured namespace gives the narrower native request register an
 injective suffix. Binding, malformed intent, not-sent versus unknown,
 non-durable completion, redacted diagnostics, and absorbing close behavior have
-focused executable coverage. Authenticated remote transport and live
-disclosure/trust-revocation wiring remain outside this slice.
+focused executable coverage. A transport-neutral connection owner now
+revalidates the bound session against current trust and disclosure, hides it on
+revocation, and irreversibly closes the injected transport exactly once.
+Authenticated remote transport and its runtime revalidation cadence remain
+outside this slice.
 
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Canonical home/kind/request scoping and the

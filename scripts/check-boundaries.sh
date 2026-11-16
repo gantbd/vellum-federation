@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-test "$(rg -l '^name = "vellum-federation-' adapters ports protocol service -g Cargo.toml | wc -l | tr -d ' ')" = 12
+test "$(rg -l '^name = "vellum-federation-' adapters ports protocol service -g Cargo.toml | wc -l | tr -d ' ')" = 14
 
 if rg -q 'vellum-engine|vellum_engine' ports protocol service -g Cargo.toml -g '*.rs'; then
   echo 'Vellum federation protocol, ports, and services must not import the engine' >&2
@@ -32,6 +32,8 @@ rg -q '^pub struct FederatedActorRefV1' protocol/vellum-federation-protocol/src/
 rg -q 'gantbd\.vellum\.federation/v1' docs/identity-namespaces.md
 rg -q 'complete SPIFFE ID participates in the mapping' docs/identity-namespaces.md
 rg -q 'neither becomes a SPIFFE workload' docs/identity-namespaces.md
+rg -q '^pub trait FederationTransportLifecyclePortV1' ports/vellum-federation-transport-port/src/lib.rs
+rg -q 'self\.transport\.close()' service/vellum-federation-connection/src/lib.rs
 
 if rg -q 'spiffe://|SPIFFE|SVID' protocol service ports -g '*.rs'; then
   echo 'SPIFFE workload provenance must enter through a trust adapter, not federation protocol or services' >&2

@@ -57,9 +57,11 @@
    from unknown, non-durable completion cannot become stable success, and
    adapter close is irreversible. The adapter depends on the ordinary Vellum
    service/Host protocol; `vellum-engine`, federation protocol, ports, and
-   services do not depend on each other across that seam. Authenticated bounded
-   transport and live disclosure/trust-revocation wiring remain integration
-   work.
+   services do not depend on each other across that seam. A transport-neutral
+   connection owner now makes failed trust or disclosure revalidation terminal,
+   hides the revoked session, and closes its injected transport exactly once
+   even when close reports failure. Authenticated bounded transport and its
+   runtime revalidation cadence remain integration work.
 6. Qualify partitions, reconnect, revocation, lost replies, receipt recovery,
    imported-event non-export, human/agent symmetry, source cleanup obligations,
    and synchronization-acknowledgement meaning.

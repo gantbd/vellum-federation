@@ -11,6 +11,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "vellum-federation-connection"
+version = "0.1.0"
+dependencies = [
+ "vellum-federation-protocol",
+ "vellum-federation-session",
+ "vellum-federation-transport-port",
+ "vellum-federation-trust-port",
+]
+
+[[package]]
 name = "vellum-federation-edit-admission"
 version = "0.1.0"
 dependencies = [
@@ -66,6 +76,10 @@ dependencies = [
  "vellum-federation-protocol",
  "vellum-federation-trust-port",
 ]
+
+[[package]]
+name = "vellum-federation-transport-port"
+version = "0.1.0"
 
 [[package]]
 name = "vellum-federation-trust-port"

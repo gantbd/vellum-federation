@@ -1,0 +1,11 @@
+[package]
+name = "vellum-federation-transport-port"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+description = "Transport lifecycle boundary for native Vellum federation"
+
+[lints]
+workspace = true

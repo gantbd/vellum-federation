@@ -1,0 +1,36 @@
+name: Coordinated source qualification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vellum-federation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out federation peer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: vellum-federation
+          persist-credentials: false
+      - name: Check out exact Vellum dependency
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: gantbd/vellum
+          ref: 418f4eeb5522309d9245b6d455085bac5cd1f8cd
+          path: vellum
+          persist-credentials: false
+      - name: Qualify locked federation peer
+        working-directory: vellum-federation
+        run: |
+          cargo fetch --locked
+          make check

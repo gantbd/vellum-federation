@@ -55,6 +55,19 @@ impl<T> FederationConnectionV1<T> {
 }
 
 impl<T: FederationTransportLifecyclePortV1> FederationConnectionV1<T> {
+    pub fn revalidate_and_use<P, R>(
+        &mut self,
+        trust: &mut P,
+        context: &P::Context,
+        operation: impl FnOnce(&mut T) -> R,
+    ) -> Result<R, FederationConnectionRefusalV1>
+    where
+        P: FederationTrustPortV1,
+    {
+        self.revalidate(trust, context)?;
+        Ok(operation(&mut self.transport))
+    }
+
     pub fn revalidate<P: FederationTrustPortV1>(
         &mut self,
         trust: &mut P,

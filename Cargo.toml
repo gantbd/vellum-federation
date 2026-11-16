@@ -3,6 +3,7 @@ members = [
     "adapters/vellum-federation-vellum",
     "adapters/vellum-federation-configured-trust",
     "adapters/vellum-federation-replica-directory",
+    "adapters/vellum-federation-rustls-transport",
     "ports/vellum-federation-edit-port",
     "ports/vellum-federation-replica-store-port",
     "ports/vellum-federation-transport-port",
@@ -15,6 +16,7 @@ members = [
     "service/vellum-federation-connection",
     "service/vellum-federation-session",
 ]
+exclude = ["qualification/transport-session"]
 resolver = "3"
 
 [workspace.package]

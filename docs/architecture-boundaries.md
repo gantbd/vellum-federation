@@ -41,5 +41,10 @@ not remote input, selects the authenticated client and local document. Only
 `EditPersistenceV1::Durable` can become a federated applied reply; partial or
 uncertain persistence remains uncertain. Adapter `close` is absorbing. The
 federation connection owner revalidates the bound session and irreversibly
-closes its injected transport on disclosure or trust revocation; physical
-transport composition remains deployment-owned.
+closes its injected transport on disclosure or trust revocation. TLS/TCP
+mechanics are confined to the classified
+`vellum-federation-rustls-transport` adapter; protocol, ports, and services
+remain transport-neutral. Its Vellum-specific ALPN and exporter bind the
+canonical disclosure-bearing hello/session exchange without granting edit,
+save, or persistence authority. Listener supervision, endpoint selection,
+reconnect policy, and certificate lifecycle remain deployment-owned.

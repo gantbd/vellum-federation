@@ -89,8 +89,15 @@ non-durable completion, redacted diagnostics, and absorbing close behavior have
 focused executable coverage. A transport-neutral connection owner now
 revalidates the bound session against current trust and disclosure, hides it on
 revocation, and irreversibly closes the injected transport exactly once.
-Authenticated remote transport and its runtime revalidation cadence remain
-outside this slice.
+The classified Rustls adapter supplies a TLS 1.3-only, mutually authenticated
+physical channel with Vellum-specific ALPN and exporter binding. Integrated
+qualification exchanges the canonical disclosure-bearing hello on that
+channel, establishes the exporter-bound session, revalidates current trust and
+disclosure immediately before each selected transport operation, and proves
+either trust revocation or disclosure downgrade prevents the next operation
+and sends terminal close notification. Listener supervision,
+reconnect/backoff, certificate issuance and rotation, and the full
+replication/edit data plane remain deployment and later integration work.
 
 See [`docs/discipline.md`](docs/discipline.md) and
 [`docs/roadmap.md`](docs/roadmap.md). Canonical home/kind/request scoping and the

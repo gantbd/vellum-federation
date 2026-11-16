@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-test "$(rg -l '^name = "vellum-federation-' adapters ports protocol service -g Cargo.toml | wc -l | tr -d ' ')" = 14
+test "$(rg -l '^name = "vellum-federation-' adapters ports protocol service -g Cargo.toml | wc -l | tr -d ' ')" = 15
 
 if rg -q 'vellum-engine|vellum_engine' ports protocol service -g Cargo.toml -g '*.rs'; then
   echo 'Vellum federation protocol, ports, and services must not import the engine' >&2
@@ -12,6 +12,13 @@ engine_importers="$(rg -l 'vellum-engine|vellum_engine' adapters -g Cargo.toml -
 if test -n "${engine_importers}" && test "${engine_importers}" != 'adapters/vellum-federation-vellum/Cargo.toml'; then
   echo 'Only the classified Vellum composition adapter may import vellum-engine' >&2
   printf '%s\n' "${engine_importers}" >&2
+  exit 1
+fi
+
+transport_importers="$(rg -l 'rustls|TcpStream' adapters ports protocol service -g Cargo.toml -g '*.rs' || true)"
+if test -n "${transport_importers}" && printf '%s\n' "${transport_importers}" | rg -qv '^adapters/vellum-federation-rustls-transport/'; then
+  echo 'Physical TLS/TCP mechanics must remain in the classified Vellum transport adapter' >&2
+  printf '%s\n' "${transport_importers}" >&2
   exit 1
 fi
 
@@ -34,6 +41,9 @@ rg -q 'complete SPIFFE ID participates in the mapping' docs/identity-namespaces.
 rg -q 'neither becomes a SPIFFE workload' docs/identity-namespaces.md
 rg -q '^pub trait FederationTransportLifecyclePortV1' ports/vellum-federation-transport-port/src/lib.rs
 rg -q 'self\.transport\.close()' service/vellum-federation-connection/src/lib.rs
+rg -q '^pub const ALPN_V1:.*vellum-federation/1' adapters/vellum-federation-rustls-transport/src/lib.rs
+rg -q 'EXPORTER-Vellum-Federation-Channel-Binding-V1' adapters/vellum-federation-rustls-transport/src/lib.rs
+rg -q 'pub fn revalidate_and_use' service/vellum-federation-connection/src/lib.rs
 
 if rg -q 'spiffe://|SPIFFE|SVID' protocol service ports -g '*.rs'; then
   echo 'SPIFFE workload provenance must enter through a trust adapter, not federation protocol or services' >&2

@@ -60,8 +60,14 @@
    services do not depend on each other across that seam. A transport-neutral
    connection owner now makes failed trust or disclosure revalidation terminal,
    hides the revoked session, and closes its injected transport exactly once
-   even when close reports failure. Authenticated bounded transport and its
-   runtime revalidation cadence remain integration work.
+   even when close reports failure. The classified Rustls adapter and integrated
+   qualification now add a TLS 1.3-only mutually authenticated channel,
+   Vellum-specific ALPN and exporter, canonical disclosure-bearing hello
+   exchange, exporter-bound session establishment, and immediate revalidation
+   before each selected transport use. Live trust revocation or disclosure
+   downgrade blocks the next use and produces terminal peer EOF. Listener
+   supervision, reconnect/backoff, certificate lifecycle, and the complete
+   replication/edit data plane remain integration work.
 6. Qualify partitions, reconnect, revocation, lost replies, receipt recovery,
    imported-event non-export, human/agent symmetry, source cleanup obligations,
    and synchronization-acknowledgement meaning.

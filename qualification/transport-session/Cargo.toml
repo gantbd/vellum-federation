@@ -1,0 +1,23 @@
+[package]
+name = "vellum-federation-transport-qualification"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[dependencies]
+vellum-federation-configured-trust = { path = "../../adapters/vellum-federation-configured-trust", version = "=0.1.0" }
+vellum-federation-connection = { path = "../../service/vellum-federation-connection", version = "=0.1.0" }
+vellum-federation-protocol = { path = "../../protocol/vellum-federation-protocol", version = "=0.1.0" }
+vellum-federation-rustls-transport = { path = "../../adapters/vellum-federation-rustls-transport", version = "=0.1.0" }
+vellum-federation-session = { path = "../../service/vellum-federation-session", version = "=0.1.0" }
+vellum-federation-wire = { path = "../../protocol/vellum-federation-wire", version = "=0.1.0" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"

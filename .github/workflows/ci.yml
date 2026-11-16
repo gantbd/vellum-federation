@@ -29,6 +29,8 @@ jobs:
           ref: 418f4eeb5522309d9245b6d455085bac5cd1f8cd
           path: vellum
           persist-credentials: false
+      - name: Install boundary-check dependency
+        run: sudo apt-get update && sudo apt-get install --yes ripgrep
       - name: Qualify locked federation peer
         working-directory: vellum-federation
         run: |
